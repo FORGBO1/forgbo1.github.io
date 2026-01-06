@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Alex Browse</title>
+<style>
+html, body {margin:0;padding:0;width:100%;height:100%;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:#000;color:#fff;overflow:hidden;}
+.browser-container{width:100%;height:100%;display:flex;flex-direction:column;}
+.browser-header{background:#1e1e2a;padding:15px 20px;display:flex;flex-direction:column;border-bottom:1px solid #333;flex-shrink:0;}
+.tabs-container{display:flex;overflow-x:auto;padding:5px 10px;background:#121212;margin-bottom:10px;min-height:40px;scrollbar-width:thin;scrollbar-color:#555 #121212;}
+.tabs-container::-webkit-scrollbar{height:8px;}
+.tabs-container::-webkit-scrollbar-thumb{background:#555;border-radius:4px;}
+.tabs-container::-webkit-scrollbar-track{background:#121212;}
+.tab{background:#2d2d3a;border-radius:8px 8px 0 0;padding:8px 40px 8px 15px;margin-right:5px;cursor:pointer;font-size:0.9rem;display:flex;align-items:center;min-width:150px;transition:all 0.2s ease;position:relative;}
+.tab.active{background:#1e1e2a;border-bottom:2px solid #ff4500;color:#fff;}
+.tab-close{margin-left:8px;cursor:pointer;font-size:14px;width:20px;height:20px;display:flex;align-items:center;justify-content:center;border-radius:50%;transition:background 0.2s;}
+.tab-close:hover{background:rgba(255,255,255,0.2);}
+.search-container{display:flex;gap:10px;padding:0 10px 10px;align-items:center;}
+.bing-icon{width:32px;height:32px;margin-right:10px;border-radius:4px;object-fit:cover;border:1px solid #ff8a00;cursor:pointer;}
+.search-bar{flex:1;padding:12px 20px;border-radius:30px;border:none;background:#2d2d3a;color:white;font-size:1rem;outline:none;}
+.search-bar::placeholder{color:rgba(255,255,255,0.6);}
+.btn{padding:10px 20px;border-radius:30px;border:none;cursor:pointer;font-weight:bold;transition:all 0.3s ease;}
+.btn-search{background:linear-gradient(to right,#ff8a00,#da1b60);color:white;}
+.btn-new-tab{background:#2d2d3a;color:white;}
+.content-container{flex:1 1 auto;display:flex;flex-direction:column;min-height:0;position:relative;}
+.welcome-container{flex:1 1 auto;padding:40px 20px;text-align:center;background:#000;display:flex;flex-direction:column;justify-content:center;align-items:center;overflow-y:auto;min-height:0;}
+.welcome-title{font-size:2.5rem;margin-bottom:20px;font-weight:bold;}
+.welcome-text{max-width:800px;line-height:1.6;margin:20px auto;font-size:1.1rem;}
+.welcome-text p{margin-bottom:15px;}
+.url-display{color:#aaa;padding:5px 20px;font-size:0.9rem;background:#121212;border-top:1px solid #333;flex-shrink:0;}
+.iframe-container{flex:1 1 auto;display:none;position:relative;min-height:0;}
+iframe{width:100%;height:100%;border:none;}
+.games-container{flex:1 1 auto;padding:20px;display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:15px;overflow-y:auto;background:#000;min-height:0;}
+.game-card{background:#1a1a1a;border-radius:8px;padding:10px;text-align:center;transition:transform 0.3s,background 0.3s;cursor:pointer;border:1px solid #333;display:flex;flex-direction:column;align-items:center;height:220px;overflow:hidden;}
+.game-card:hover{transform:translateY(-3px);background:#222;border-color:#ff4500;}
+.game-icon{width:100px;height:100px;border-radius:8px;margin-bottom:8px;object-fit:cover;border:1px solid #ff8a00;}
+.game-title{font-size:0.9rem;margin-bottom:5px;text-align:center;word-wrap:break-word;max-height:40px;overflow:hidden;}
+@media (max-width:768px){.search-container{flex-direction:column;}.search-bar{width:100%;}.tab{min-width:120px;padding:8px 30px 8px 15px;}.games-container{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));padding:15px;}.game-card{height:200px;}.game-icon{width:80px;height:80px;}.game-title{font-size:0.8rem;}}
+</style>
+</head>
+<body>
+<div class="browser-container">
+    <div class="browser-header">
+        <div class="tabs-container" id="tabsContainer">
+            <div class="tab active" data-tab="1">Home <span class="tab-close" data-tab="1">×</span></div>
+        </div>
+        <div class="search-container">
+            <img src="https://th.bing.com/th/id/R.270ef77e819b2d673848751ee067304a?rik=owewyaLZ6L%2bKKQ&pid=ImgRaw&r=0" class="bing-icon">
+            <input type="text" class="search-bar" id="searchBar" placeholder="Enter a URL or search query...">
+            <button class="btn btn-search">Search</button>
+            <button class="btn btn-new-tab">New Tab</button>
+        </div>
+    </div>
+    <div class="url-display" id="urlDisplay">Welcome to Alex Browse - Enter a URL or search term</div>
+    <div class="content-container">
+        <div class="welcome-container" id="welcomeContainer">
+            <h1 class="welcome-title">Welcome to Alex Browse!</h1>
+            <div class="welcome-text" id="welcomeText">
+                <p>Enter a URL like <strong>example.com</strong> to load a website in an iframe, or search for information. Our AI will provide answers to your queries.</p>
+                <p>Try searching for "weather in New York" or enter a website like "github.com" to get started.</p>
+            </div>
+        </div>
+        <div class="iframe-container" id="iframeContainer">
+            <iframe id="mainFrame"></iframe>
+        </div>
+        <div class="games-container" id="gamesContainer" style="display:none;"></div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+    const searchBar=document.getElementById('searchBar');
+    const searchBtn=document.querySelector('.btn-search');
+    const newTabBtn=document.querySelector('.btn-new-tab');
+    const tabsContainer=document.getElementById('tabsContainer');
+    const urlDisplay=document.getElementById('urlDisplay');
+    const welcomeContainer=document.getElementById('welcomeContainer');
+    const welcomeText=document.getElementById('welcomeText');
+    const iframeContainer=document.getElementById('iframeContainer');
+    const mainFrame=document.getElementById('mainFrame');
+    const gamesContainer=document.getElementById('gamesContainer');
+
+    let tabCounter=2,currentTab=1;
+    const tabsData={1:{url:null,searchQuery:null,showGames:false}};
+
+    const COVER_BASE="https://cdn.jsdelivr.net/gh/gn-math/covers@main";
+    const HTML_BASE="https://raw.githack.com/gn-math/html/main";
+
+    const shortcuts = {
+        "gmz.alex": "games",
+        "pxy.alex": "https://learnbridge.institute"
+    };
+
+    const fallbackGames=Array.from({length:12},(_,id)=>({
+        id,name:`Game ${id}`,cover:`${COVER_BASE}/${id}.png`,url:`${HTML_BASE}/${id}.html`
+    }));
+
+    function loadGames(games){
+        gamesContainer.innerHTML="";
+        games.forEach(game=>{
+            const card=document.createElement('div');
+            card.className='game-card';
+            card.innerHTML=`<img src="${game.cover}" class="game-icon"><div class="game-title">${game.name}</div>`;
+            card.addEventListener('click',()=>{
+                // Open game in new tab (bypass iframe CORS issue)
+                window.open(game.url,"_blank");
+            });
+            gamesContainer.appendChild(card);
+        });
+    }
+
+    function fetchGames(){
+        fetch("https://cdn.jsdelivr.net/gh/gn-math/assets@main/zones.json")
+        .then(r=>r.json())
+        .then(data=>{
+            const games=data.filter(item=>item.cover && item.url).map(item=>({
+                id:item.id,name:item.name,cover:item.cover.replace("{COVER_URL}",COVER_BASE),url:item.url.replace("{HTML_URL}",HTML_BASE)
+            }));
+            loadGames(games.length?games:fallbackGames);
+        }).catch(()=>loadGames(fallbackGames));
+    }
+
+    function isUrl(str){return /^[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9](\.[a-zA-Z]{2,})+$/.test(str);}
+
+    function processSearch(){
+        const query=searchBar.value.trim().toLowerCase();
+        if(!query) return;
+
+        if(shortcuts[query] === "games"){
+            gamesContainer.style.display='grid'; iframeContainer.style.display='none'; welcomeContainer.style.display='none';
+            fetchGames(); urlDisplay.textContent='GMZ Games - All Games';
+            tabsData[currentTab]={url:null,searchQuery:'gmz.alex',showGames:true};
+        } else if(shortcuts[query]){
+            iframeContainer.style.display='block'; welcomeContainer.style.display='none'; gamesContainer.style.display='none';
+            mainFrame.src=shortcuts[query]; urlDisplay.textContent=shortcuts[query];
+            tabsData[currentTab]={url:shortcuts[query],searchQuery:null,showGames:false};
+        } else if(isUrl(query)){
+            let url=query; if(!url.startsWith('http')) url='https://'+url;
+            iframeContainer.style.display='block'; welcomeContainer.style.display='none'; gamesContainer.style.display='none';
+            mainFrame.src=url; urlDisplay.textContent=url;
+            tabsData[currentTab]={url:url,searchQuery:null,showGames:false};
+        } else{
+            // AI simulated response
+            iframeContainer.style.display='none'; gamesContainer.style.display='none'; welcomeContainer.style.display='flex';
+            const responses=[`"${query}" is an interesting topic.`,`I found resources about "${query}".`,`Research shows multiple viewpoints on "${query}".`];
+            const randomResponse=responses[Math.floor(Math.random()*responses.length)];
+            welcomeText.innerHTML=`<h2>AI Response for: "${query}"</h2><p>${randomResponse}</p>`;
+            urlDisplay.textContent=`AI Response: ${query}`;
+            tabsData[currentTab]={url:null,searchQuery:query,showGames:false};
+        }
+    }
+
+    searchBtn.addEventListener('click',processSearch);
+    searchBar.addEventListener('keypress',e=>{if(e.key==='Enter')processSearch();});
+
+    newTabBtn.addEventListener('click',()=>{
+        const newTab=document.createElement('div'); newTab.className='tab';
+        newTab.dataset.tab=tabCounter; newTab.innerHTML=`Tab ${tabCounter} <span class="tab-close" data-tab="${tabCounter}">×</span>`;
+        tabsContainer.appendChild(newTab); tabsData[tabCounter]={url:null,searchQuery:null,showGames:false};
+        activateTab(newTab); tabCounter++;
+    });
+
+    tabsContainer.addEventListener('click',e=>{
+        const tab=e.target.closest('.tab'); if(!tab)return;
+        if(e.target.classList.contains('tab-close')) closeTab(tab.dataset.tab);
+        else activateTab(tab);
+    });
+
+    function closeTab(tabId){
+        const tab=document.querySelector(`.tab[data-tab="${tabId}"]`); if(!tab)return;
+        if(tab.classList.contains('active')){
+            const others=document.querySelectorAll(`.tab:not([data-tab="${tabId}"])`);
+            if(others.length) activateTab(others[0]);
+        }
+        tab.remove(); delete tabsData[tabId];
+    }
+
+    function activateTab(tab){
+        document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active')); tab.classList.add('active'); currentTab=parseInt(tab.dataset.tab);
+        const data=tabsData[currentTab];
+        if(!data)return;
+        if(data.showGames){gamesContainer.style.display='grid'; iframeContainer.style.display='none'; welcomeContainer.style.display='none'; fetchGames();}
+        else if(data.url){iframeContainer.style.display='block'; welcomeContainer.style.display='none'; gamesContainer.style.display='none'; mainFrame.src=data.url; urlDisplay.textContent=data.url;}
+        else if(data.searchQuery){iframeContainer.style.display='none'; welcomeContainer.style.display='flex'; gamesContainer.style.display='none'; welcomeText.innerHTML=`<h2>AI Response for: "${data.searchQuery}"</h2><p>This is a simulated AI response.</p>`; urlDisplay.textContent=`AI Response: ${data.searchQuery}`;}
+        else{iframeContainer.style.display='none'; welcomeContainer.style.display='flex'; gamesContainer.style.display='none'; welcomeText.innerHTML=`<h2>Welcome to Tab ${currentTab}</h2><p>Enter a URL or search query to begin.</p>`; urlDisplay.textContent=`Tab ${currentTab} - Enter a URL or search term`;}
+    }
+});
+</script>
+</body>
+</html>
