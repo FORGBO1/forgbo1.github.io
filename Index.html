@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alex Games</title>
+
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            color: #fff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+        }
+
+        .header {
+            padding: 20px;
+            background: #111;
+            border-bottom: 1px solid #333;
+            text-align: center;
+        }
+
+        .header h1 {
+            margin: 0 0 15px;
+            font-size: 2rem;
+        }
+
+        .search-bar {
+            width: 100%;
+            max-width: 500px;
+            padding: 12px 20px;
+            border-radius: 30px;
+            border: none;
+            outline: none;
+            background: #2d2d3a;
+            color: white;
+            font-size: 1rem;
+        }
+
+        .games-container {
+            padding: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 15px;
+            height: calc(100vh - 140px);
+            overflow-y: auto;
+        }
+
+        .game-card {
+            background: #1a1a1a;
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+            cursor: pointer;
+            border: 1px solid #333;
+            transition: transform .2s, background .2s, border .2s;
+            height: 220px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .game-card:hover {
+            transform: translateY(-4px);
+            background: #222;
+            border-color: #ff4500;
+        }
+
+        .game-icon {
+            width: 100px;
+            height: 100px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ff8a00;
+        }
+
+        .game-title {
+            font-size: .9rem;
+            text-align: center;
+            max-height: 40px;
+            overflow: hidden;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="header">
+    <h1>Alex Games</h1>
+    <input type="text" id="searchInput" class="search-bar" placeholder="Search games...">
+</div>
+
+<div class="games-container" id="gamesContainer"></div>
+
+<script>
+/* --- GAME LOGIC ONLY --- */
+const gamesContainer = document.getElementById("gamesContainer");
+const searchInput = document.getElementById("searchInput");
+
+const COVER_BASE = "https://cdn.jsdelivr.net/gh/gn-math/covers@main";
+const HTML_BASE  = "https://raw.githack.com/gn-math/html/main";
+
+let allGames = [];
+
+function renderGames(games) {
+    gamesContainer.innerHTML = "";
+    games.forEach(game => {
+        const card = document.createElement("div");
+        card.className = "game-card";
+        card.innerHTML = `
+            <img src="${game.cover}" class="game-icon">
+            <div class="game-title">${game.name}</div>
+        `;
+        card.onclick = () => window.open(game.url, "_blank");
+        gamesContainer.appendChild(card);
+    });
+}
+
+function fetchGames() {
+    fetch("https://cdn.jsdelivr.net/gh/gn-math/assets@main/zones.json")
+        .then(r => r.json())
+        .then(data => {
+            allGames = data
+                .filter(g => g.cover && g.url)
+                .map(g => ({
+                    name: g.name,
+                    cover: g.cover.replace("{COVER_URL}", COVER_BASE),
+                    url: g.url.replace("{HTML_URL}", HTML_BASE)
+                }));
+            renderGames(allGames);
+        });
+}
+
+searchInput.addEventListener("input", () => {
+    const q = searchInput.value.toLowerCase();
+    renderGames(allGames.filter(g => g.name.toLowerCase().includes(q)));
+});
+
+fetchGames();
+</script>
+
+</body>
+</html>
